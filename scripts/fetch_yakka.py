@@ -66,10 +66,14 @@ def download_and_extract_csv(session: requests.Session, zip_url: str) -> str:
 
 def detect_columns(sample_rows: list[list[str]]) -> tuple[int, int, int, int]:
     """
-    CSVの実際の列構成を自動検出する。
-    各列のデータパターンから薬剤コード・薬剤名・単位・薬価の列を特定する。
+    CSVの列構成を検出する。
+
+    支払基金の医薬品マスターCSVは以下の構造になっている：
+    [種別] [薬剤コード(9桁)] [変更区分] [薬剤名] [名称文字数] [規格容量] [規格文字数] [単位] [単位文字数] [算定区分] [薬価] ...
+
+    各フィールドの後ろに「文字数」列が続くため、
+    薬剤名列(name_col)を基準に固定オフセットで残りを計算する。
     """
-    # 空行・短すぎる行を除外
     rows = [r for r in sample_rows if len(r) >= 8]
     if not rows:
         raise RuntimeError("列検出に使えるデータ行がありません。")
@@ -77,40 +81,37 @@ def detect_columns(sample_rows: list[list[str]]) -> tuple[int, int, int, int]:
     n_cols = max(len(r) for r in rows)
     n = len(rows)
 
-    code_col = name_col = unit_col = price_col = -1
+    code_col = name_col = -1
 
-    # 各列の特徴をスコアリング
     for col in range(n_cols):
         vals = [r[col].strip() for r in rows if col < len(r)]
         if not vals:
             continue
 
-        # 9桁の数字が多い → レセプト電算コード（薬剤コード）
+        # 9桁の数字が多い列 → 薬剤コード
         nine_digit = sum(1 for v in vals if re.match(r"^\d{9}$", v))
         if nine_digit / n > 0.7 and code_col == -1:
             code_col = col
             print(f"  列{col}: 薬剤コード（例: {vals[0]}）")
             continue
 
-        # 日本語文字を含み長い → 薬剤名
+        # 日本語文字を含み比較的長い列 → 薬剤名
         jp_long = sum(1 for v in vals if re.search(r"[ぁ-んァ-ヶ一-龥]", v) and len(v) >= 3)
         if jp_long / n > 0.5 and name_col == -1:
             name_col = col
             print(f"  列{col}: 薬剤名（例: {vals[0]}）")
-            continue
+            break  # 薬剤名が見つかれば残りは固定オフセットで計算
 
-        # 日本語文字を含み短い → 単位
-        jp_short = sum(1 for v in vals if re.search(r"[ぁ-んァ-ヶ一-龥]", v) and 1 <= len(v) <= 6)
-        if jp_short / n > 0.5 and unit_col == -1:
-            unit_col = col
-            print(f"  列{col}: 単位（例: {vals[0]}）")
-            continue
+    if name_col == -1:
+        raise RuntimeError("薬剤名列を検出できませんでした。")
 
-        # 100以上の整数が多い → 薬価（0.1銭単位）
-        large_int = sum(1 for v in vals if re.match(r"^\d+$", v) and int(v) >= 100)
-        if large_int / n > 0.5 and price_col == -1 and col != code_col:
-            price_col = col
-            print(f"  列{col}: 薬価（例: {vals[0]}）")
+    # 薬剤名の後ろは固定構造:
+    # +1: 名称文字数, +2: 規格容量, +3: 規格文字数, +4: 単位, +5: 単位文字数, +6: 算定区分, +7: 薬価
+    unit_col  = name_col + 4
+    price_col = name_col + 7
+
+    print(f"  列{unit_col}: 単位（名称列+4）")
+    print(f"  列{price_col}: 薬価（名称列+7）")
 
     return code_col, name_col, unit_col, price_col
 
