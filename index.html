@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小分け依頼書</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== リセット・ベース ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #2d7a4f;
+      --accent-dark: #235f3d;
+      --accent-light: #e8f4ee;
+      --border: #e5e7eb;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --bg: #f9fafb;
+      --white: #ffffff;
+      --danger: #dc2626;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    /* ===== ナビヘッダー ===== */
+    .nav-header {
+      background: var(--accent);
+      color: var(--white);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.05em; }
+    .nav-header .yakka-badge {
+      margin-left: auto;
+      font-size: 12px;
+      background: rgba(255,255,255,0.2);
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    /* ===== メインレイアウト ===== */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 48px);
+    }
+
+    /* ===== 入力エリア ===== */
+    .input-area {
+      padding: 20px;
+      overflow-y: auto;
+      background: var(--white);
+      border-right: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .form-grid .full-width { grid-column: 1 / -1; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .form-group input,
+    .form-group textarea {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,122,79,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 56px; }
+
+    /* ===== 薬剤明細テーブル ===== */
+    .drug-table-wrapper { overflow-x: auto; margin-top: 4px; }
+    .drug-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .drug-table th {
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      font-weight: 600;
+      padding: 7px 6px;
+      text-align: left;
+      border-bottom: 2px solid var(--accent);
+      white-space: nowrap;
+    }
+    .drug-table td {
+      padding: 5px 4px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .drug-table td input {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 6px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text);
+      width: 100%;
+      min-width: 0;
+    }
+    .drug-table td input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .drug-table .col-no { width: 28px; text-align: center; color: var(--text-muted); }
+    .drug-table .col-name { min-width: 140px; position: relative; }
+    .drug-table .col-unit { width: 64px; }
+    .drug-table .col-price { width: 80px; }
+    .drug-table .col-qty { width: 64px; }
+    .drug-table .col-amount { width: 72px; text-align: right; font-weight: 500; color: var(--accent-dark); }
+    .drug-table .col-action { width: 28px; text-align: center; }
+    .btn-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9ca3af;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .btn-del:hover { color: var(--danger); background: #fef2f2; }
+
+    /* ===== サジェスト ===== */
+    .suggest-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 200;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .suggest-item {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .suggest-item:last-child { border-bottom: none; }
+    .suggest-item:hover, .suggest-item.active { background: var(--accent-light); }
+    .suggest-item .drug-name { font-weight: 500; font-size: 13px; }
+    .suggest-item .drug-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ===== ボタン群 ===== */
+    .btn-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: var(--white); }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-outline {
+      background: var(--white);
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+    }
+    .btn-outline:hover { background: var(--accent-light); }
+    .btn-ghost {
+      background: var(--white);
+      color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-print { background: #1d4ed8; color: var(--white); }
+    .btn-print:hover { background: #1e40af; }
+
+    /* ===== マスターセクション ===== */
+    .master-section {
+      margin-top: 24px;
+      border-top: 2px dashed var(--border);
+      padding-top: 16px;
+    }
+    .master-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .master-entry {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .master-entry .entry-info { flex: 1; min-width: 0; }
+    .master-entry .entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .master-entry .entry-sub { color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .master-entry .btn-load {
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: inherit;
+      font-weight: 600;
+      border-radius: 4px;
+      border: 1.5px solid var(--accent);
+      background: var(--white);
+      color: var(--accent);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .master-entry .btn-load:hover { background: var(--accent-light); }
+    .master-entry .btn-del-master {
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: inherit;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .master-entry .btn-del-master:hover { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+    .master-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px 0; }
+
+    /* ===== プレビューエリア ===== */
+    .preview-area {
+      padding: 24px;
+      background: var(--bg);
+      overflow-y: auto;
+    }
+    .preview-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    /* ===== 印刷プレビュー用紙（A4縦比率） ===== */
+    .paper {
+      background: var(--white);
+      /* A4 比率: 210:297 ≈ 1:1.414。max-widthを基準に min-height を設定 */
+      width: 100%;
+      max-width: 560px;
+      min-height: calc(560px * 297 / 210); /* ≈ 792px */
+      margin: 0 auto;
+      padding: 36px 40px 28px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+      border-radius: 4px;
+      font-size: 12px;
+      /* flex column で依頼元ブロックを最下部に押し出す */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* タイトル */
+    .paper-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--text);
+    }
+
+    /* 日付・書類番号（右寄せ） */
+    .paper-date-row {
+      text-align: right;
+      font-size: 12px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    /* 依頼先（左寄せ・上部） */
+    .paper-addressee {
+      margin-bottom: 16px;
+    }
+    .paper-addressee .to-name {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .paper-addressee .to-staff {
+      font-size: 13px;
+      margin-top: 2px;
+      color: var(--text-muted);
+    }
+
+    /* 書き出し文 */
+    .paper-greeting {
+      font-size: 12px;
+      margin-bottom: 18px;
+      padding-left: 1em;
+      line-height: 1.8;
+    }
+
+    /* 薬剤テーブル */
+    .preview-drug-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-bottom: 12px;
+    }
+    .preview-drug-table th {
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      font-weight: 600;
+      padding: 5px 6px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .preview-drug-table td {
+      padding: 5px 6px;
+      border: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .preview-drug-table .num { text-align: right; }
+
+    /* 合計エリア */
+    .totals-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .total-row { display: flex; gap: 20px; font-size: 12px; }
+    .total-row .total-label { color: var(--text-muted); }
+    .total-row .total-value { font-weight: 500; min-width: 80px; text-align: right; }
+    .total-grand {
+      border-top: 2px solid var(--text);
+      padding-top: 5px;
+      margin-top: 2px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .total-grand .total-label { color: var(--text); }
+
+    /* 備考 */
+    .paper-note {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+    .paper-note .note-label { font-weight: 600; margin-bottom: 3px; }
+
+    /* 出典（小さく） */
+    .paper-source {
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    /* 依頼元ブロック（用紙下部） */
+    .paper-spacer { flex: 1; min-height: 16px; }
+
+    .paper-from-block {
+      border-top: 1px solid var(--text);
+      padding-top: 12px;
+      display: flex;
+      justify-content: flex-end; /* 右寄せ */
+    }
+    .paper-from-inner {
+      text-align: right;
+      font-size: 11px;
+      line-height: 1.85;
+    }
+    .paper-from-inner .from-name {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .paper-from-inner .from-detail { color: var(--text-muted); font-size: 10px; }
+
+    /* ===== トースト ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1f2937;
+      color: var(--white);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 9999;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== レスポンシブ ===== */
+    @media (max-width: 768px) {
+      .app-layout { grid-template-columns: 1fr; }
+      .input-area { border-right: none; border-bottom: 1px solid var(--border); }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== 印刷用CSS ===== */
+    @media print {
+      .nav-header,
+      .input-area,
+      .preview-label { display: none !important; }
+
+      body, html { background: white; margin: 0; padding: 0; }
+
+      .app-layout { display: block; }
+
+      .preview-area {
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+      }
+
+      .paper {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        font-size: 10.5pt !important;
+      }
+
+      .paper-title { font-size: 17pt !important; }
+      .preview-drug-table th {
+        background: #e8f4ee !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      tr { page-break-inside: avoid; }
+
+      @page { size: A4 portrait; margin: 15mm; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ナビヘッダー -->
+<header class="nav-header">
+  <h1>小分け依頼書</h1>
+  <span class="yakka-badge" id="yakka-badge">薬価データ読込中...</span>
+</header>
+
+<!-- メインレイアウト -->
+<div class="app-layout">
+
+  <!-- ===== 入力エリア ===== -->
+  <div class="input-area">
+
+    <div class="section-title">基本情報</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="inp-date">依頼日</label>
+        <input type="date" id="inp-date" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group">
+        <label for="inp-docnum">書類番号</label>
+        <input type="text" id="inp-docnum" placeholder="例：2026-001" oninput="onHeaderInput()">
+      </div>
+    </div>
+
+    <div class="section-title">依頼先</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="inp-to-name">依頼先薬局名</label>
+        <input type="text" id="inp-to-name" placeholder="△△薬局" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group">
+        <label for="inp-to-staff">依頼先担当者名</label>
+        <input type="text" id="inp-to-staff" placeholder="担当者名（任意）" oninput="onHeaderInput()">
+      </div>
+    </div>
+
+    <div class="section-title">依頼元 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">※マスターから読み込むか直接入力</span></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="inp-from-name">薬局名 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="inp-from-name" placeholder="〇〇薬局" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group">
+        <label for="inp-from-staff">担当者名</label>
+        <input type="text" id="inp-from-staff" placeholder="担当者名" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group full-width">
+        <label for="inp-from-address">住所</label>
+        <input type="text" id="inp-from-address" placeholder="〒000-0000　○○県○○市○○町1-2-3" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group">
+        <label for="inp-from-tel">電話番号</label>
+        <input type="tel" id="inp-from-tel" placeholder="000-0000-0000" oninput="onHeaderInput()">
+      </div>
+      <div class="form-group">
+        <label for="inp-from-fax">FAX番号</label>
+        <input type="tel" id="inp-from-fax" placeholder="000-0000-0000" oninput="onHeaderInput()">
+      </div>
+    </div>
+
+    <div class="section-title">備考・メモ</div>
+    <div class="form-group">
+      <textarea id="inp-note" placeholder="自由記入欄" oninput="onHeaderInput()"></textarea>
+    </div>
+
+    <div class="section-title">薬剤明細</div>
+    <div class="drug-table-wrapper">
+      <table class="drug-table">
+        <thead>
+          <tr>
+            <th class="col-no">No.</th>
+            <th class="col-name">薬剤名</th>
+            <th class="col-unit">単位</th>
+            <th class="col-price">薬価（円）</th>
+            <th class="col-qty">数量</th>
+            <th class="col-amount">金額（円）</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody id="drug-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="btn-area" style="margin-top:10px; margin-bottom:4px;">
+      <button class="btn btn-outline" onclick="addRow()">＋ 行を追加</button>
+    </div>
+
+    <div class="section-title">操作</div>
+    <div class="btn-area">
+      <button class="btn btn-print" onclick="printDocument()">🖨 印刷 / PDF出力</button>
+      <button class="btn btn-ghost" onclick="resetAll()">リセット</button>
+    </div>
+
+    <!-- ===== 依頼元マスター（最下段） ===== -->
+    <div class="master-section">
+      <div class="section-title" style="margin-top:0;">依頼元マスター</div>
+      <div style="margin-bottom:8px;">
+        <button class="btn btn-outline" style="white-space:nowrap; padding:7px 14px; font-size:12px;" onclick="saveMaster()">
+          ＋ 現在の依頼元を登録
+        </button>
+      </div>
+      <div class="master-list" id="master-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== プレビューエリア ===== -->
+  <div class="preview-area">
+    <div class="preview-label">印刷プレビュー（A4縦・リアルタイム）</div>
+    <div class="paper" id="preview-paper"></div>
+  </div>
+
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== アプリ状態 =====
+  const AppState = {
+    headerData: {
+      date: '',
+      docNumber: '',
+      fromName: '',
+      fromStaff: '',
+      fromAddress: '',
+      fromTel: '',
+      fromFax: '',
+      toName: '',
+      toStaff: '',
+      note: ''
+    },
+    rows: []
+  };
+
+  let drugsData = null;
+  let debounceTimer = null;
+  let activeSuggestIndex = -1;
+
+  // ===== 初期化 =====
+  function initApp() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('inp-date').value = today;
+    AppState.headerData.date = today;
+
+    loadPreset();
+    renderMasterList();
+    loadDrugsData();
+    addRow();
+    updatePreview();
+  }
+
+  async function loadDrugsData() {
+    try {
+      const res = await fetch('./data/yakka.json');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      drugsData = await res.json();
+      const badge = document.getElementById('yakka-badge');
+      badge.textContent = '薬価 ' + drugsData.updated_at + ' 版（' + drugsData.count.toLocaleString() + '件）';
+      badge.style.background = 'rgba(255,255,255,0.25)';
+      updatePreview();
+    } catch (e) {
+      document.getElementById('yakka-badge').textContent = '薬価データ未取得';
+      showToast('薬価データの読み込みに失敗しました。薬価は手動で入力してください。');
+    }
+  }
+
+  // ===== プリセット（最後に使った依頼元を復元） =====
+  const PRESET_KEYS = ['fromName', 'fromStaff', 'fromAddress', 'fromTel', 'fromFax'];
+  const PRESET_IDS  = ['inp-from-name', 'inp-from-staff', 'inp-from-address', 'inp-from-tel', 'inp-from-fax'];
+
+  function loadPreset() {
+    PRESET_KEYS.forEach((k, i) => {
+      const val = localStorage.getItem('preset_' + k) || '';
+      AppState.headerData[k] = val;
+      document.getElementById(PRESET_IDS[i]).value = val;
+    });
+  }
+
+  function savePreset() {
+    PRESET_KEYS.forEach(k => {
+      localStorage.setItem('preset_' + k, AppState.headerData[k]);
+    });
+  }
+
+  // ===== 依頼元マスター管理 =====
+  function getMasters() {
+    try { return JSON.parse(localStorage.getItem('from_masters') || '[]'); }
+    catch { return []; }
+  }
+
+  function setMasters(list) {
+    localStorage.setItem('from_masters', JSON.stringify(list));
+  }
+
+  function saveMaster() {
+    const name = AppState.headerData.fromName.trim();
+    if (!name) {
+      showToast('薬局名を入力してから登録してください。');
+      return;
+    }
+    const masters = getMasters();
+    const isDup = masters.some(m =>
+      m.name    === AppState.headerData.fromName &&
+      m.staff   === AppState.headerData.fromStaff &&
+      m.address === AppState.headerData.fromAddress &&
+      m.tel     === AppState.headerData.fromTel &&
+      m.fax     === AppState.headerData.fromFax
+    );
+    if (isDup) { showToast('同じ内容がすでに登録されています。'); return; }
+    masters.push({
+      id:      Date.now(),
+      name:    AppState.headerData.fromName,
+      staff:   AppState.headerData.fromStaff,
+      address: AppState.headerData.fromAddress,
+      tel:     AppState.headerData.fromTel,
+      fax:     AppState.headerData.fromFax,
+    });
+    setMasters(masters);
+    renderMasterList();
+    showToast(`「${name}」をマスターに登録しました。`);
+  }
+
+  function applyMaster(id) {
+    const master = getMasters().find(m => m.id === id);
+    if (!master) return;
+    const map = { fromName: 'inp-from-name', fromStaff: 'inp-from-staff', fromAddress: 'inp-from-address', fromTel: 'inp-from-tel', fromFax: 'inp-from-fax' };
+    AppState.headerData.fromName    = master.name    || '';
+    AppState.headerData.fromStaff   = master.staff   || '';
+    AppState.headerData.fromAddress = master.address || '';
+    AppState.headerData.fromTel     = master.tel     || '';
+    AppState.headerData.fromFax     = master.fax     || '';
+    Object.entries(map).forEach(([k, id]) => {
+      document.getElementById(id).value = AppState.headerData[k];
+    });
+    savePreset();
+    updatePreview();
+    showToast(`「${master.name}」を読み込みました。`);
+  }
+
+  function deleteMaster(id) {
+    const masters = getMasters();
+    const target = masters.find(m => m.id === id);
+    if (!target) return;
+    if (!confirm(`「${target.name}」をマスターから削除しますか？`)) return;
+    setMasters(masters.filter(m => m.id !== id));
+    renderMasterList();
+    showToast(`「${target.name}」を削除しました。`);
+  }
+
+  function renderMasterList() {
+    const list = document.getElementById('master-list');
+    if (!list) return;
+    const masters = getMasters();
+    if (masters.length === 0) {
+      list.innerHTML = '<div class="master-empty">登録済みの依頼元はありません</div>';
+      return;
+    }
+    list.innerHTML = masters.map(m => {
+      const sub = [m.address, [m.tel && 'TEL:'+m.tel, m.fax && 'FAX:'+m.fax].filter(Boolean).join('　')].filter(Boolean).join('　');
+      return `
+        <div class="master-entry">
+          <div class="entry-info">
+            <div class="entry-name">${escHtml(m.name)}${m.staff ? '　' + escHtml(m.staff) : ''}</div>
+            <div class="entry-sub">${escHtml(sub) || '　'}</div>
+          </div>
+          <button class="btn-load" onclick="applyMaster(${m.id})">読み込み</button>
+          <button class="btn-del-master" onclick="deleteMaster(${m.id})">削除</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ===== ヘッダー入力ハンドラ =====
+  function onHeaderInput() {
+    AppState.headerData.date        = document.getElementById('inp-date').value;
+    AppState.headerData.docNumber   = document.getElementById('inp-docnum').value;
+    AppState.headerData.toName      = document.getElementById('inp-to-name').value;
+    AppState.headerData.toStaff     = document.getElementById('inp-to-staff').value;
+    AppState.headerData.fromName    = document.getElementById('inp-from-name').value;
+    AppState.headerData.fromStaff   = document.getElementById('inp-from-staff').value;
+    AppState.headerData.fromAddress = document.getElementById('inp-from-address').value;
+    AppState.headerData.fromTel     = document.getElementById('inp-from-tel').value;
+    AppState.headerData.fromFax     = document.getElementById('inp-from-fax').value;
+    AppState.headerData.note        = document.getElementById('inp-note').value;
+    savePreset();
+    updatePreview();
+  }
+
+  // ===== 薬剤明細 行操作 =====
+  function addRow() {
+    AppState.rows.push({ drugName: '', unit: '', price: '', quantity: '', amount: 0 });
+    renderDrugTable();
+    updatePreview();
+  }
+
+  function removeRow(index) {
+    AppState.rows.splice(index, 1);
+    renderDrugTable();
+    updatePreview();
+  }
+
+  function updateRow(index, field, val) {
+    AppState.rows[index][field] = val;
+    calcRow(index);
+    updatePreview();
+  }
+
+  function renderDrugTable() {
+    const tbody = document.getElementById('drug-tbody');
+    tbody.innerHTML = '';
+    AppState.rows.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-no">${i + 1}</td>
+        <td class="col-name" style="position:relative;">
+          <input type="text" value="${escHtml(row.drugName)}"
+            placeholder="薬剤名を入力..."
+            oninput="onDrugNameInput(this, ${i})"
+            onkeydown="onSuggestKeydown(event, ${i})"
+            autocomplete="off">
+          <div class="suggest-dropdown" id="suggest-${i}" style="display:none;"></div>
+        </td>
+        <td class="col-unit">
+          <input type="text" value="${escHtml(row.unit)}" placeholder="単位"
+            oninput="updateRow(${i}, 'unit', this.value)">
+        </td>
+        <td class="col-price">
+          <input type="number" value="${row.price !== '' ? row.price : ''}"
+            placeholder="0.00" step="0.01" min="0"
+            oninput="updateRow(${i}, 'price', this.value === '' ? '' : parseFloat(this.value))">
+        </td>
+        <td class="col-qty">
+          <input type="number" value="${row.quantity !== '' ? row.quantity : ''}"
+            placeholder="0" step="1" min="1" max="9999"
+            oninput="updateRow(${i}, 'quantity', this.value === '' ? '' : parseInt(this.value, 10))">
+        </td>
+        <td class="col-amount">${row.amount > 0 ? formatCurrency(row.amount) : '—'}</td>
+        <td class="col-action">
+          <button class="btn-del" onclick="removeRow(${i})" title="削除">×</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ===== サジェスト =====
+  function onDrugNameInput(el, rowIndex) {
+    AppState.rows[rowIndex].drugName = el.value;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const kw = el.value.trim();
+      if (kw.length < 2) { hideSuggestions(rowIndex); return; }
+      showSuggestions(searchDrugs(kw), rowIndex);
+    }, 300);
+    updatePreview();
+  }
+
+  function searchDrugs(keyword) {
+    if (!drugsData) return [];
+    const kw = keyword.toLowerCase();
+    return drugsData.drugs.filter(d => d.name.toLowerCase().includes(kw)).slice(0, 10);
+  }
+
+  function showSuggestions(results, rowIndex) {
+    const box = document.getElementById('suggest-' + rowIndex);
+    if (!box) return;
+    if (results.length === 0) { hideSuggestions(rowIndex); return; }
+    activeSuggestIndex = -1;
+    box.innerHTML = results.map((d, i) =>
+      `<div class="suggest-item" data-idx="${i}"
+        onmousedown="selectSuggestion(${JSON.stringify(JSON.stringify(d))}, ${rowIndex})"
+        onmouseover="highlightSuggest(${rowIndex}, ${i})">
+        <div class="drug-name">${escHtml(d.name)}</div>
+        <div class="drug-meta">${escHtml(d.unit)} ／ ¥${d.price.toFixed(2)}</div>
+      </div>`
+    ).join('');
+    box._results = results;
+    box.style.display = 'block';
+  }
+
+  function hideSuggestions(rowIndex) {
+    const box = document.getElementById('suggest-' + rowIndex);
+    if (box) box.style.display = 'none';
+    activeSuggestIndex = -1;
+  }
+
+  function highlightSuggest(rowIndex, idx) {
+    const box = document.getElementById('suggest-' + rowIndex);
+    if (!box) return;
+    box.querySelectorAll('.suggest-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+    activeSuggestIndex = idx;
+  }
+
+  function onSuggestKeydown(e, rowIndex) {
+    const box = document.getElementById('suggest-' + rowIndex);
+    if (!box || box.style.display === 'none') return;
+    const items = box.querySelectorAll('.suggest-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSuggestIndex = Math.min(activeSuggestIndex + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestIndex));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSuggestIndex = Math.max(activeSuggestIndex - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestIndex));
+    } else if (e.key === 'Enter' && activeSuggestIndex >= 0 && box._results) {
+      e.preventDefault();
+      selectSuggestion(JSON.stringify(box._results[activeSuggestIndex]), rowIndex);
+    } else if (e.key === 'Escape') {
+      hideSuggestions(rowIndex);
+    }
+  }
+
+  function selectSuggestion(drugJson, rowIndex) {
+    const drug = typeof drugJson === 'string' ? JSON.parse(drugJson) : drugJson;
+    AppState.rows[rowIndex].drugName = drug.name;
+    AppState.rows[rowIndex].unit     = drug.unit;
+    AppState.rows[rowIndex].price    = drug.price;
+    calcRow(rowIndex);
+    renderDrugTable();
+    hideSuggestions(rowIndex);
+    updatePreview();
+    const qtyInput = document.getElementById('drug-tbody')
+      .querySelectorAll('tr')[rowIndex]?.querySelector('input[type="number"]:last-of-type');
+    if (qtyInput) qtyInput.focus();
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.col-name')) AppState.rows.forEach((_, i) => hideSuggestions(i));
+  });
+
+  // ===== 計算 =====
+  function calcRow(index) {
+    const row = AppState.rows[index];
+    row.amount = Math.floor((parseFloat(row.price) || 0) * (parseInt(row.quantity, 10) || 0));
+  }
+
+  function calcTotals() {
+    const subtotal = AppState.rows.reduce((s, r) => s + (r.amount || 0), 0);
+    const tax      = Math.floor(subtotal * 0.10);
+    return { subtotal, tax, total: subtotal + tax };
+  }
+
+  // ===== プレビュー更新 =====
+  function updatePreview() {
+    const h = AppState.headerData;
+    const { subtotal, tax, total } = calcTotals();
+    const paper = document.getElementById('preview-paper');
+
+    const rowsHtml = AppState.rows.map((row, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td>${escHtml(row.drugName) || '<span style="color:#9ca3af">—</span>'}</td>
+        <td>${escHtml(row.unit) || ''}</td>
+        <td class="num">${row.price !== '' && row.price !== undefined ? parseFloat(row.price).toFixed(2) : ''}</td>
+        <td class="num">${row.quantity !== '' && row.quantity !== undefined ? row.quantity : ''}</td>
+        <td class="num">${row.amount > 0 ? formatCurrency(row.amount) : '—'}</td>
+      </tr>
+    `).join('');
+
+    const sourceText = drugsData
+      ? `薬価は社会保険診療報酬支払基金 医薬品マスター（${drugsData.updated_at}版）に基づきます。`
+      : '薬価は手動入力です（公式データ未取得）。';
+
+    // 依頼元情報を組み立て
+    const fromLines = [
+      h.fromName  ? `<div class="from-name">${escHtml(h.fromName)}</div>` : '<div class="from-name" style="color:#9ca3af">（依頼元未入力）</div>',
+      h.fromStaff   ? `<div>担当：${escHtml(h.fromStaff)}</div>` : '',
+      h.fromAddress ? `<div>${escHtml(h.fromAddress)}</div>` : '',
+      h.fromTel     ? `<div>TEL：${escHtml(h.fromTel)}</div>` : '',
+      h.fromFax     ? `<div>FAX：${escHtml(h.fromFax)}</div>` : '',
+    ].filter(Boolean).join('');
+
+    paper.innerHTML = `
+      <div class="paper-title">小&ensp;分&ensp;け&ensp;依&ensp;頼&ensp;書</div>
+
+      <div class="paper-date-row">
+        ${h.date ? formatDateJP(h.date) : '　　　年　月　日'}<br>
+        ${h.docNumber ? `書類番号：${escHtml(h.docNumber)}` : ''}
+      </div>
+
+      <div class="paper-addressee">
+        <div class="to-name">
+          ${h.toName
+            ? `${escHtml(h.toName)}&ensp;御中`
+            : '<span style="color:#9ca3af">（依頼先未入力）</span>'}
+        </div>
+        ${h.toStaff ? `<div class="to-staff">${escHtml(h.toStaff)}&ensp;様</div>` : ''}
+      </div>
+
+      <div class="paper-greeting">
+        下記のとおり、小分けをお願いいたします。
+      </div>
+
+      <table class="preview-drug-table">
+        <thead>
+          <tr>
+            <th style="width:26px;">No.</th>
+            <th>薬剤名</th>
+            <th style="width:48px;">単位</th>
+            <th style="width:68px;" class="num">薬価（円）</th>
+            <th style="width:44px;" class="num">数量</th>
+            <th style="width:68px;" class="num">金額（円）</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+
+      <div class="totals-area">
+        <div class="total-row">
+          <span class="total-label">小計（税抜）</span>
+          <span class="total-value">${formatCurrency(subtotal)} 円</span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">消費税（10%）</span>
+          <span class="total-value">${formatCurrency(tax)} 円</span>
+        </div>
+        <div class="total-row total-grand">
+          <span class="total-label">税込総額</span>
+          <span class="total-value">${formatCurrency(total)} 円</span>
+        </div>
+      </div>
+
+      ${h.note ? `<div class="paper-note"><div class="note-label">備考</div><div>${escHtml(h.note)}</div></div>` : ''}
+
+      <div class="paper-source">※${sourceText}</div>
+
+      <div class="paper-spacer"></div>
+
+      <div class="paper-from-block">
+        <div class="paper-from-inner">
+          ${fromLines}
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== 印刷 =====
+  function printDocument() {
+    const h = AppState.headerData;
+    if (!h.fromName.trim()) { alert('依頼元薬局名を入力してください。'); return; }
+    if (AppState.rows.length === 0) { alert('薬剤が1件も登録されていません。'); return; }
+    const emptyPrice = AppState.rows.some(r => r.drugName.trim() && (r.price === '' || r.price === undefined));
+    if (emptyPrice && !confirm('薬価が未入力の行があります。このまま印刷しますか？')) return;
+    window.print();
+  }
+
+  // ===== リセット =====
+  function resetAll() {
+    if (!confirm('入力内容をすべてクリアします。よろしいですか？')) return;
+    AppState.rows = [];
+    AppState.headerData = { date: '', docNumber: '', fromName: '', fromStaff: '', fromAddress: '', fromTel: '', fromFax: '', toName: '', toStaff: '', note: '' };
+    const today = new Date().toISOString().slice(0, 10);
+    AppState.headerData.date = today;
+    ['inp-date','inp-docnum','inp-from-name','inp-from-staff','inp-from-address','inp-from-tel','inp-from-fax','inp-to-name','inp-to-staff','inp-note'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = id === 'inp-date' ? today : '';
+    });
+    addRow();
+    updatePreview();
+  }
+
+  // ===== ユーティリティ =====
+  function showToast(message) {
+    const el = document.getElementById('toast');
+    el.textContent = message;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  function formatCurrency(num) {
+    return (num || 0).toLocaleString('ja-JP');
+  }
+
+  function formatDateJP(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    let era, year;
+    if (y > 2019 || (y === 2019 && (m > 5 || (m === 5 && d >= 1)))) {
+      era = '令和'; year = y - 2018;
+    } else if (y > 1989 || (y === 1989 && (m > 1 || (m === 1 && d >= 8)))) {
+      era = '平成'; year = y - 1988;
+    } else {
+      era = '昭和'; year = y - 1925;
+    }
+    return `${era}${year}年${m}月${d}日`;
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ===== 起動 =====
+  document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
