@@ -109,7 +109,7 @@
     .form-group textarea { resize: vertical; min-height: 56px; }
 
     /* ===== 薬剤明細テーブル ===== */
-    .drug-table-wrapper { overflow-x: auto; margin-top: 4px; }
+    .drug-table-wrapper { overflow: visible; margin-top: 4px; }
     .drug-table {
       width: 100%;
       border-collapse: collapse;
@@ -168,25 +168,25 @@
       position: absolute;
       top: 100%;
       left: 0;
-      right: 0;
+      min-width: 320px;
       background: var(--white);
-      border: 1px solid var(--accent);
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 200;
-      max-height: 220px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.20);
+      z-index: 9999;
+      max-height: 320px;
       overflow-y: auto;
     }
     .suggest-item {
-      padding: 8px 10px;
+      padding: 12px 14px;
       cursor: pointer;
       border-bottom: 1px solid var(--border);
       transition: background 0.1s;
     }
     .suggest-item:last-child { border-bottom: none; }
     .suggest-item:hover, .suggest-item.active { background: var(--accent-light); }
-    .suggest-item .drug-name { font-weight: 500; font-size: 13px; }
-    .suggest-item .drug-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .suggest-item .drug-name { font-weight: 600; font-size: 14px; }
+    .suggest-item .drug-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 
     /* ===== ボタン群 ===== */
     .btn-area {
@@ -865,16 +865,28 @@
     if (!box) return;
     if (results.length === 0) { hideSuggestions(rowIndex); return; }
     activeSuggestIndex = -1;
+    box._results = results;
     box.innerHTML = results.map((d, i) =>
-      `<div class="suggest-item" data-idx="${i}"
-        onmousedown="selectSuggestion(${JSON.stringify(JSON.stringify(d))}, ${rowIndex})"
-        onmouseover="highlightSuggest(${rowIndex}, ${i})">
+      `<div class="suggest-item" data-idx="${i}">
         <div class="drug-name">${escHtml(d.name)}</div>
         <div class="drug-meta">${escHtml(d.unit)} ／ ¥${d.price.toFixed(2)}</div>
       </div>`
     ).join('');
-    box._results = results;
+    box.querySelectorAll('.suggest-item').forEach((el, i) => {
+      el.addEventListener('mouseover', () => highlightSuggest(rowIndex, i));
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectSuggestion(results[i], rowIndex);
+      });
+    });
+    box.style.top = '';
+    box.style.bottom = '';
     box.style.display = 'block';
+    const rect = box.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) {
+      box.style.top = 'auto';
+      box.style.bottom = '100%';
+    }
   }
 
   function hideSuggestions(rowIndex) {
@@ -904,7 +916,7 @@
       items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestIndex));
     } else if (e.key === 'Enter' && activeSuggestIndex >= 0 && box._results) {
       e.preventDefault();
-      selectSuggestion(JSON.stringify(box._results[activeSuggestIndex]), rowIndex);
+      selectSuggestion(box._results[activeSuggestIndex], rowIndex);
     } else if (e.key === 'Escape') {
       hideSuggestions(rowIndex);
     }
