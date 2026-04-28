@@ -1,4 +1,4 @@
-const CACHE = 'kowake-v1';
+const CACHE = 'kowake-v2';
 const ASSETS = [
   './',
   './index.html',
