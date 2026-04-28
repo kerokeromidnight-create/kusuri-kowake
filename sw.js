@@ -1,9 +1,10 @@
-const CACHE = 'kowake-v2';
+const CACHE = 'kowake-v3';
 const ASSETS = [
   './',
   './index.html',
   './data/yakka.json',
   './icons/favicon.png',
+  './icons/icon-192.png',
   './icons/icon-512.png',
   './manifest.json'
 ];
