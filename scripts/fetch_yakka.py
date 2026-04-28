@@ -105,12 +105,13 @@ def detect_columns(sample_rows: list[list[str]]) -> tuple[int, int, int, int]:
     if name_col == -1:
         raise RuntimeError("薬剤名列を検出できませんでした。")
 
-    # 薬剤名の後ろは固定構造:
-    # +1: 名称文字数, +2: 規格容量, +3: 規格文字数, +4: 単位, +5: 単位文字数, +6: 算定区分, +7: 薬価
-    unit_col  = name_col + 4
+    # 薬剤名の後ろは固定構造（実CSVより確認済み）:
+    # [名称] [名称コード数] [半角名称] [半角名称コード数] [?] [単位] [単位コード数] [薬価(円・小数)]
+    #  +0       +1            +2            +3             +4   +5       +6            +7
+    unit_col  = name_col + 5
     price_col = name_col + 7
 
-    print(f"  列{unit_col}: 単位（名称列+4）")
+    print(f"  列{unit_col}: 単位（名称列+5）")
     print(f"  列{price_col}: 薬価（名称列+7）")
 
     return code_col, name_col, unit_col, price_col
@@ -154,7 +155,12 @@ def parse_drugs(csv_text: str) -> list[dict]:
         unit      = row[unit_col].strip()
         price_raw = row[price_col].strip()
 
-        if not price_raw.lstrip("-").isdigit():
+        # 価格はCSV内ですでに円単位の小数（例: '9.50'）
+        try:
+            price_val = float(price_raw)
+        except ValueError:
+            continue
+        if price_val < 0:
             continue
         if not name or not code:
             continue
@@ -162,7 +168,7 @@ def parse_drugs(csv_text: str) -> list[dict]:
         if not re.search(r"[ぁ-んァ-ヶ一-龥]", name):
             continue
 
-        price = round(int(price_raw) / 100, 2)
+        price = round(price_val, 2)
         drugs.append({"code": code, "name": name, "unit": unit, "price": price})
 
     return drugs
