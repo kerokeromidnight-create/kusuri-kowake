@@ -1,0 +1,24 @@
+{
+  "name": "小分け依頼書",
+  "short_name": "小分け依頼書",
+  "description": "薬局間 薬剤小分け依頼書作成アプリ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2d7a4f",
+  "icons": [
+    {
+      "src": "icons/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
